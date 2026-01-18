@@ -1,0 +1,479 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>논문 리딩용 단어장</title>
+    <style>
+        :root {
+            --primary-medical: #2c7be5;
+            --primary-general: #00d97e;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --border-radius: 12px;
+        }
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: transparent;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+        }
+        .data-controls {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .data-btn {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            color: #555;
+            transition: all 0.2s;
+        }
+        .data-btn:hover { background-color: #f0f0f0; border-color: #bbb; }
+        .tabs {
+            display: flex;
+            background: #e0e0e0;
+            border-radius: var(--border-radius);
+            padding: 4px;
+            margin-bottom: 15px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            color: #666;
+            transition: all 0.2s;
+        }
+        .tab-btn.active[data-tab="medical"] { background: white; color: var(--primary-medical); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .tab-btn.active[data-tab="general"] { background: white; color: var(--primary-general); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        
+        .search-container { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+        .search-box { position: relative; flex-grow: 2; min-width: 200px; }
+        .search-input {
+            width: 100%;
+            padding: 12px 40px 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+        .search-input:focus { outline: none; border-color: #999; }
+        .search-clear-btn {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #ccc;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .search-filter, .sort-filter {
+            padding: 0 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: var(--border-radius);
+            font-size: 0.9rem;
+            background-color: white;
+            cursor: pointer;
+            color: #555;
+            height: 48px;
+        }
+
+        .input-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            position: relative;
+        }
+        .input-row { display: flex; gap: 10px; }
+        input, textarea, select {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: inherit;
+        }
+        input:focus, textarea:focus, select:focus { outline: none; border-color: #888; }
+        textarea { resize: vertical; min-height: 50px; }
+        .btn-group { display: flex; gap: 8px; }
+        button#add-btn {
+            flex: 2;
+            background-color: var(--primary-medical);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: background 0.2s;
+        }
+        button#cancel-btn {
+            flex: 1;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            display: none;
+        }
+        #msg-box { color: #e74c3c; font-size: 0.9rem; font-weight: bold; margin-top: 5px; text-align: center; height: 20px; opacity: 0; transition: opacity 0.3s; }
+        
+        .vocab-list { list-style: none; padding: 0; display: grid; gap: 15px; }
+        .vocab-item {
+            background: var(--card-bg);
+            padding: 1.2rem;
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            position: relative;
+            border-left: 5px solid transparent;
+        }
+        .vocab-item.medical { border-left-color: var(--primary-medical); }
+        .vocab-item.general { border-left-color: var(--primary-general); }
+        .item-header { display: flex; justify-content: space-between; align-items: baseline; }
+        .word-group { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+        .word { font-size: 1.4rem; font-weight: 800; color: #222; }
+        .meaning { font-size: 1.1rem; color: #555; font-weight: 500; }
+        
+        .deriv-text {
+            font-size: 0.85rem;
+            color: #888;
+            font-style: italic;
+            margin-top: -4px;
+        }
+
+        .example-box {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            color: #444;
+            line-height: 1.5;
+            margin-top: 5px;
+            border-left: 2px solid #ddd;
+            white-space: pre-wrap;
+        }
+        .highlight { color: #e74c3c; font-weight: 800; }
+        .supplement-box {
+            background-color: #eef2f7;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            color: #555;
+            line-height: 1.5;
+            margin-top: 2px;
+            font-style: italic;
+            border-left: 2px solid #6c757d;
+            white-space: pre-wrap;
+        }
+        .supplement-label { font-weight: bold; font-size: 0.85rem; color: #555; display: block; margin-bottom: 4px; }
+        .action-btns { position: absolute; top: 15px; right: 15px; display: flex; gap: 10px; }
+        .icon-btn { background: transparent; border: none; cursor: pointer; font-size: 1rem; color: #aaa; }
+        .edit-btn:hover { color: var(--primary-medical); }
+        .delete-btn:hover { color: #ff6b6b; }
+        .no-result { text-align: center; color: #888; padding: 20px; }
+        @media (max-width: 600px) {
+            .input-row { flex-direction: column; }
+            .item-header { flex-direction: column; gap: 4px; }
+            .search-container { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📚 논문 리딩용 단어장</h1>
+    <div class="data-controls">
+        <button id="export-btn" class="data-btn">📤 백업하기 (저장)</button>
+        <button id="import-btn" class="data-btn">📥 불러오기</button>
+        <input type="file" id="file-input" style="display: none;" accept=".json">
+    </div>
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="medical" onclick="switchTab('medical')">🏥 의학 용어</button>
+        <button class="tab-btn" data-tab="general" onclick="switchTab('general')">🍏 일반 영단어</button>
+    </div>
+    <div class="search-container">
+        <div class="search-box">
+            <input type="text" id="search-input" class="search-input" placeholder="검색어 입력..." autocomplete="off">
+            <button id="search-clear" class="search-clear-btn">✕</button>
+        </div>
+        <select id="search-filter" class="search-filter">
+            <option value="all">전체 검색</option>
+            <option value="word">단어만 검색</option>
+        </select>
+        <select id="sort-filter" class="sort-filter">
+            <option value="newest">최신순</option>
+            <option value="abc">이름순 (A-Z)</option>
+        </select>
+    </div>
+    <div class="input-card" id="input-area">
+        <div class="input-row">
+            <select id="category-select" style="width: 120px; flex-shrink: 0;">
+                <option value="medical">의학 용어</option>
+                <option value="general">일반 영단어</option>
+            </select>
+            <input type="text" id="word-input" placeholder="단어 (원형)" autocomplete="off">
+            <input type="text" id="meaning-input" placeholder="뜻" autocomplete="off">
+        </div>
+        <input type="text" id="derivative-input" placeholder="파생어 (예: n. prediction, adj. predictive)" autocomplete="off">
+        <textarea id="example-input" placeholder="사용 예시 (자동 강조됨, 수동 강조는 *별표* 사용)"></textarea>
+        <textarea id="supplement-input" placeholder="보충 설명 / 메모 (의학 용어 전용)"></textarea>
+        <div id="msg-box"></div>
+        <div class="btn-group">
+            <button id="add-btn">추가하기</button>
+            <button id="cancel-btn">취소</button>
+        </div>
+    </div>
+    <ul id="vocab-list" class="vocab-list"></ul>
+</div>
+<script>
+    let vocabData = JSON.parse(localStorage.getItem('studyVocabData')) || [];
+    let currentTab = 'medical';
+    let editingId = null;
+
+    const wordInput = document.getElementById('word-input'), 
+          meaningInput = document.getElementById('meaning-input'),
+          derivativeInput = document.getElementById('derivative-input'),
+          exampleInput = document.getElementById('example-input'), 
+          supplementInput = document.getElementById('supplement-input'),
+          categorySelect = document.getElementById('category-select'), 
+          addBtn = document.getElementById('add-btn'),
+          cancelBtn = document.getElementById('cancel-btn'), 
+          vocabList = document.getElementById('vocab-list'),
+          tabBtns = document.querySelectorAll('.tab-btn'), 
+          searchInput = document.getElementById('search-input'),
+          searchClearBtn = document.getElementById('search-clear'), 
+          searchFilter = document.getElementById('search-filter'),
+          sortFilter = document.getElementById('sort-filter'), 
+          exportBtn = document.getElementById('export-btn'),
+          importBtn = document.getElementById('import-btn'), 
+          fileInput = document.getElementById('file-input'), 
+          msgBox = document.getElementById('msg-box');
+
+    renderList(); updateUIForCategory();
+
+    exportBtn.addEventListener('click', () => {
+        const dataStr = JSON.stringify(vocabData, null, 2), 
+              blob = new Blob([dataStr], { type: "application/json" }),
+              url = URL.createObjectURL(blob), a = document.createElement('a'), now = new Date(),
+              timestamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}${String(now.getSeconds()).padStart(2,'0')}`;
+        a.href = url; a.download = `vocab_backup_${timestamp}.json`; a.click(); URL.revokeObjectURL(url);
+    });
+
+    importBtn.addEventListener('click', () => { fileInput.click(); });
+    
+    // === 중복 방지 로직이 적용된 불러오기 ===
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0]; if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const importedData = JSON.parse(event.target.result);
+                if (!Array.isArray(importedData)) throw new Error("잘못된 형식");
+                
+                let addedCount = 0; 
+                let skipCount = 0;
+
+                importedData.forEach(newItem => {
+                    if (!newItem.word || !newItem.meaning) return;
+                    
+                    // 중복 체크: 같은 카테고리에 같은 단어가 있는지 확인 (대소문자 무시)
+                    const isDuplicate = vocabData.some(existingItem => 
+                        existingItem.category === (newItem.category || 'general') && 
+                        existingItem.word.toLowerCase() === newItem.word.toLowerCase()
+                    );
+
+                    if (isDuplicate) {
+                        skipCount++; // 중복이면 추가 안 함
+                    } else {
+                        // 중복 아니면 추가 (ID는 새로 발급)
+                        newItem.id = Date.now() + Math.random(); 
+                        if (!newItem.category) newItem.category = 'general'; // 카테고리 없으면 일반으로
+                        vocabData.push(newItem);
+                        addedCount++;
+                    }
+                });
+
+                if (addedCount > 0) { 
+                    saveData(); 
+                    renderList(); 
+                    alert(`${addedCount}개의 새로운 단어가 추가되었습니다.\n(${skipCount}개는 이미 존재하여 건너뜀)`); 
+                } else {
+                    alert(`추가된 단어가 없습니다.\n(모두 이미 존재하는 단어입니다)`);
+                }
+
+            } catch (err) { alert("오류: " + err.message); }
+            fileInput.value = '';
+        }; reader.readAsText(file);
+    });
+
+    function switchTab(tabName) {
+        currentTab = tabName; tabBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tabName));
+        categorySelect.value = tabName; updateUIForCategory(); renderList();
+    }
+
+    function updateUIForCategory() {
+        const isMedical = categorySelect.value === 'medical';
+        supplementInput.style.display = isMedical ? 'block' : 'none';
+        const color = isMedical ? 'var(--primary-medical)' : 'var(--primary-general)';
+        if (!editingId) addBtn.style.backgroundColor = color;
+        exampleInput.placeholder = isMedical ? '사용 예시 (의학적 문맥)' : '사용 예시 (일상 문장)';
+    }
+
+    categorySelect.addEventListener('change', updateUIForCategory);
+    searchInput.addEventListener('input', () => { searchClearBtn.style.display = searchInput.value ? 'flex' : 'none'; renderList(); });
+    searchClearBtn.addEventListener('click', () => { searchInput.value = ''; searchClearBtn.style.display = 'none'; renderList(); searchInput.focus(); });
+    searchFilter.addEventListener('change', renderList);
+    sortFilter.addEventListener('change', renderList);
+
+    function showMessage(msg) { msgBox.innerText = msg; msgBox.style.opacity = 1; setTimeout(() => { msgBox.style.opacity = 0; }, 3000); }
+
+    addBtn.addEventListener('click', () => {
+        const word = wordInput.value.trim(), 
+              meaning = meaningInput.value.trim(), 
+              derivative = derivativeInput.value.trim(),
+              example = exampleInput.value.trim(),
+              supplement = categorySelect.value === 'medical' ? supplementInput.value.trim() : '', 
+              category = categorySelect.value;
+        
+        if (!word || !meaning) { showMessage('단어와 뜻은 필수입니다!'); return; }
+        if (!editingId && vocabData.some(item => item.category === category && item.word.toLowerCase() === word.toLowerCase())) { showMessage('이미 등록된 단어입니다!'); return; }
+        
+        if (editingId) {
+            vocabData = vocabData.map(item => item.id === editingId ? { ...item, word, meaning, derivative, example, supplement, category } : item);
+            editingId = null; addBtn.innerText = '추가하기'; cancelBtn.style.display = 'none';
+        } else { 
+            vocabData.unshift({ id: Date.now(), word, meaning, derivative, example, supplement, category }); 
+        }
+        
+        saveData(); if (currentTab !== category) switchTab(category); else renderList(); clearInputs();
+    });
+
+    window.startEdit = function(id) {
+        const item = vocabData.find(i => i.id === id); if (!item) return;
+        editingId = id; 
+        wordInput.value = item.word; 
+        meaningInput.value = item.meaning; 
+        derivativeInput.value = item.derivative || '';
+        exampleInput.value = item.example || '';
+        supplementInput.value = item.supplement || ''; 
+        categorySelect.value = item.category;
+        updateUIForCategory(); addBtn.innerText = '수정 완료'; addBtn.style.backgroundColor = '#f39c12'; cancelBtn.style.display = 'block';
+        document.getElementById('input-area').scrollIntoView({ behavior: 'smooth' }); wordInput.focus();
+    };
+
+    cancelBtn.addEventListener('click', () => { editingId = null; addBtn.innerText = '추가하기'; cancelBtn.style.display = 'none'; updateUIForCategory(); clearInputs(); });
+    window.deleteWord = function(id) { if(confirm('이 단어를 삭제하시겠습니까?')) { vocabData = vocabData.filter(item => item.id !== id); saveData(); renderList(); } };
+    function clearInputs() { wordInput.value = ''; meaningInput.value = ''; derivativeInput.value = ''; exampleInput.value = ''; supplementInput.value = ''; }
+    function saveData() { localStorage.setItem('studyVocabData', JSON.stringify(vocabData)); }
+
+    function renderList() {
+        vocabList.innerHTML = '';
+        const searchTerm = searchInput.value.trim().toLowerCase(), filterType = searchFilter.value, sortType = sortFilter.value;
+        
+        let filteredData = vocabData.filter(item => {
+            if (item.category !== currentTab) return false;
+            if (!searchTerm) return true;
+
+            const lowerWord = item.word.toLowerCase();
+            const lowerDerivative = item.derivative ? item.derivative.toLowerCase() : '';
+            const lowerMeaning = item.meaning.toLowerCase();
+            const lowerExample = item.example ? item.example.toLowerCase() : '';
+            const lowerSupplement = item.supplement ? item.supplement.toLowerCase() : '';
+
+            if (filterType === 'word') {
+                return lowerWord.includes(searchTerm) || lowerDerivative.includes(searchTerm);
+            } else {
+                return (lowerWord.includes(searchTerm) || 
+                        lowerMeaning.includes(searchTerm) || 
+                        lowerDerivative.includes(searchTerm) ||
+                        lowerExample.includes(searchTerm) || 
+                        lowerSupplement.includes(searchTerm));
+            }
+        });
+
+        if (sortType === 'abc') filteredData.sort((a, b) => a.word.toLowerCase().localeCompare(b.word.toLowerCase()));
+        else filteredData.sort((a, b) => b.id - a.id);
+
+        if (filteredData.length === 0) { vocabList.innerHTML = '<li class="no-result">검색 결과가 없습니다.</li>'; return; }
+        
+        filteredData.forEach(item => {
+            const li = document.createElement('li'); li.className = `vocab-item ${item.category}`;
+            const parsedExample = applyHighlights(item.example, item.word);
+            
+            li.innerHTML = `
+                <div class="item-header">
+                    <div class="word-group">
+                        <span class="word">${escapeHtml(item.word)}</span>
+                        <span class="meaning">${escapeHtml(item.meaning)}</span>
+                    </div>
+                    <div class="action-btns">
+                        <button class="icon-btn edit-btn" onclick="startEdit(${item.id})">✏️</button>
+                        <button class="icon-btn delete-btn" onclick="deleteWord(${item.id})">🗑️</button>
+                    </div>
+                </div>
+                ${item.derivative ? `<div class="deriv-text">파생: ${escapeHtml(item.derivative)}</div>` : ''}
+                ${item.example ? `<div class="example-box">${parsedExample}</div>` : ''}
+                ${(item.category === 'medical' && item.supplement) ? `<div class="supplement-box"><span class="supplement-label">💡 참고:</span>${escapeHtml(item.supplement)}</div>` : ''}
+            `;
+            vocabList.appendChild(li);
+        });
+    }
+
+    function escapeHtml(text) { if (!text) return ''; return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
+    function applyHighlights(text, word) {
+        if (!text) return ''; let safeText = escapeHtml(text);
+        if (word && word.trim() !== '') {
+            const safeWord = escapeHtml(word.trim());
+            try { const regex = new RegExp(`\\b(${safeWord})\\b`, 'gi'); safeText = safeText.replace(regex, '<span class="highlight">$1</span>'); } catch (e) {}
+        }
+        safeText = safeText.replace(/\*([^*]+)\*/g, '<span class="highlight">$1</span>'); return safeText;
+    }
+</script>
+</body>
+</html>
