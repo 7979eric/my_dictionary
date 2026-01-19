@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -72,7 +72,7 @@
         }
         .tab-btn.active[data-tab="medical"] { background: white; color: var(--primary-medical); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .tab-btn.active[data-tab="general"] { background: white; color: var(--primary-general); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        
+
         .search-container { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
         .search-box { position: relative; flex-grow: 2; min-width: 200px; }
         .search-input {
@@ -161,7 +161,7 @@
             display: none;
         }
         #msg-box { color: #e74c3c; font-size: 0.9rem; font-weight: bold; margin-top: 5px; text-align: center; height: 20px; opacity: 0; transition: opacity 0.3s; }
-        
+
         .vocab-list { list-style: none; padding: 0; display: grid; gap: 15px; }
         .vocab-item {
             background: var(--card-bg);
@@ -179,8 +179,9 @@
         .item-header { display: flex; justify-content: space-between; align-items: baseline; }
         .word-group { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
         .word { font-size: 1.4rem; font-weight: 800; color: #222; }
+        .phonetic { font-size: 0.95rem; color: #777; font-weight: 600; }
         .meaning { font-size: 1.1rem; color: #555; font-weight: 500; }
-        
+
         .deriv-text {
             font-size: 0.85rem;
             color: #888;
@@ -258,6 +259,7 @@
                 <option value="general">일반 영단어</option>
             </select>
             <input type="text" id="word-input" placeholder="단어 (원형)" autocomplete="off">
+            <input type="text" id="phonetic-input" placeholder="발음기호 (예: /ˈtɛmpərəl/)" autocomplete="off">
             <input type="text" id="meaning-input" placeholder="뜻" autocomplete="off">
         </div>
         <input type="text" id="derivative-input" placeholder="파생어 (예: n. prediction, adj. predictive)" autocomplete="off">
@@ -271,12 +273,14 @@
     </div>
     <ul id="vocab-list" class="vocab-list"></ul>
 </div>
+
 <script>
     let vocabData = JSON.parse(localStorage.getItem('studyVocabData')) || [];
     let currentTab = 'medical';
     let editingId = null;
 
     const wordInput = document.getElementById('word-input'), 
+          phoneticInput = document.getElementById('phonetic-input'),
           meaningInput = document.getElementById('meaning-input'),
           derivativeInput = document.getElementById('derivative-input'),
           exampleInput = document.getElementById('example-input'), 
@@ -306,7 +310,7 @@
     });
 
     importBtn.addEventListener('click', () => { fileInput.click(); });
-    
+
     // === 중복 방지 로직이 적용된 불러오기 ===
     fileInput.addEventListener('change', (e) => {
         const file = e.target.files[0]; if (!file) return;
@@ -315,17 +319,18 @@
             try {
                 const importedData = JSON.parse(event.target.result);
                 if (!Array.isArray(importedData)) throw new Error("잘못된 형식");
-                
+
                 let addedCount = 0; 
                 let skipCount = 0;
 
                 importedData.forEach(newItem => {
                     if (!newItem.word || !newItem.meaning) return;
-                    
+
                     // 중복 체크: 같은 카테고리에 같은 단어가 있는지 확인 (대소문자 무시)
+                    const category = (newItem.category || 'general');
                     const isDuplicate = vocabData.some(existingItem => 
-                        existingItem.category === (newItem.category || 'general') && 
-                        existingItem.word.toLowerCase() === newItem.word.toLowerCase()
+                        existingItem.category === category && 
+                        (existingItem.word || '').toLowerCase() === (newItem.word || '').toLowerCase()
                     );
 
                     if (isDuplicate) {
@@ -334,6 +339,8 @@
                         // 중복 아니면 추가 (ID는 새로 발급)
                         newItem.id = Date.now() + Math.random(); 
                         if (!newItem.category) newItem.category = 'general'; // 카테고리 없으면 일반으로
+                        // phonetic이 없을 수도 있으니 기본값만 보장
+                        if (!newItem.phonetic) newItem.phonetic = '';
                         vocabData.push(newItem);
                         addedCount++;
                     }
@@ -375,22 +382,23 @@
 
     addBtn.addEventListener('click', () => {
         const word = wordInput.value.trim(), 
+              phonetic = phoneticInput.value.trim(),
               meaning = meaningInput.value.trim(), 
               derivative = derivativeInput.value.trim(),
               example = exampleInput.value.trim(),
               supplement = categorySelect.value === 'medical' ? supplementInput.value.trim() : '', 
               category = categorySelect.value;
-        
+
         if (!word || !meaning) { showMessage('단어와 뜻은 필수입니다!'); return; }
         if (!editingId && vocabData.some(item => item.category === category && item.word.toLowerCase() === word.toLowerCase())) { showMessage('이미 등록된 단어입니다!'); return; }
-        
+
         if (editingId) {
-            vocabData = vocabData.map(item => item.id === editingId ? { ...item, word, meaning, derivative, example, supplement, category } : item);
+            vocabData = vocabData.map(item => item.id === editingId ? { ...item, word, phonetic, meaning, derivative, example, supplement, category } : item);
             editingId = null; addBtn.innerText = '추가하기'; cancelBtn.style.display = 'none';
         } else { 
-            vocabData.unshift({ id: Date.now(), word, meaning, derivative, example, supplement, category }); 
+            vocabData.unshift({ id: Date.now(), word, phonetic, meaning, derivative, example, supplement, category }); 
         }
-        
+
         saveData(); if (currentTab !== category) switchTab(category); else renderList(); clearInputs();
     });
 
@@ -398,6 +406,7 @@
         const item = vocabData.find(i => i.id === id); if (!item) return;
         editingId = id; 
         wordInput.value = item.word; 
+        phoneticInput.value = item.phonetic || '';
         meaningInput.value = item.meaning; 
         derivativeInput.value = item.derivative || '';
         exampleInput.value = item.example || '';
@@ -409,47 +418,52 @@
 
     cancelBtn.addEventListener('click', () => { editingId = null; addBtn.innerText = '추가하기'; cancelBtn.style.display = 'none'; updateUIForCategory(); clearInputs(); });
     window.deleteWord = function(id) { if(confirm('이 단어를 삭제하시겠습니까?')) { vocabData = vocabData.filter(item => item.id !== id); saveData(); renderList(); } };
-    function clearInputs() { wordInput.value = ''; meaningInput.value = ''; derivativeInput.value = ''; exampleInput.value = ''; supplementInput.value = ''; }
+    function clearInputs() { wordInput.value = ''; phoneticInput.value = ''; meaningInput.value = ''; derivativeInput.value = ''; exampleInput.value = ''; supplementInput.value = ''; }
     function saveData() { localStorage.setItem('studyVocabData', JSON.stringify(vocabData)); }
 
     function renderList() {
         vocabList.innerHTML = '';
         const searchTerm = searchInput.value.trim().toLowerCase(), filterType = searchFilter.value, sortType = sortFilter.value;
-        
+
         let filteredData = vocabData.filter(item => {
-            if (item.category !== currentTab) return false;
+            // 검색어가 없을 때는: 현재 탭(의학/일반)만 표시
+            if (!searchTerm && item.category !== currentTab) return false;
             if (!searchTerm) return true;
 
-            const lowerWord = item.word.toLowerCase();
+
+            const lowerWord = (item.word || '').toLowerCase();
+            const lowerPhonetic = (item.phonetic || '').toLowerCase();
             const lowerDerivative = item.derivative ? item.derivative.toLowerCase() : '';
-            const lowerMeaning = item.meaning.toLowerCase();
+            const lowerMeaning = (item.meaning || '').toLowerCase();
             const lowerExample = item.example ? item.example.toLowerCase() : '';
             const lowerSupplement = item.supplement ? item.supplement.toLowerCase() : '';
 
             if (filterType === 'word') {
-                return lowerWord.includes(searchTerm) || lowerDerivative.includes(searchTerm);
+                return lowerWord.includes(searchTerm) || lowerDerivative.includes(searchTerm) || lowerPhonetic.includes(searchTerm);
             } else {
                 return (lowerWord.includes(searchTerm) || 
                         lowerMeaning.includes(searchTerm) || 
                         lowerDerivative.includes(searchTerm) ||
+                        lowerPhonetic.includes(searchTerm) ||
                         lowerExample.includes(searchTerm) || 
                         lowerSupplement.includes(searchTerm));
             }
         });
 
-        if (sortType === 'abc') filteredData.sort((a, b) => a.word.toLowerCase().localeCompare(b.word.toLowerCase()));
+        if (sortType === 'abc') filteredData.sort((a, b) => (a.word || '').toLowerCase().localeCompare((b.word || '').toLowerCase()));
         else filteredData.sort((a, b) => b.id - a.id);
 
         if (filteredData.length === 0) { vocabList.innerHTML = '<li class="no-result">검색 결과가 없습니다.</li>'; return; }
-        
+
         filteredData.forEach(item => {
             const li = document.createElement('li'); li.className = `vocab-item ${item.category}`;
             const parsedExample = applyHighlights(item.example, item.word);
-            
+
             li.innerHTML = `
                 <div class="item-header">
                     <div class="word-group">
                         <span class="word">${escapeHtml(item.word)}</span>
+                        ${item.phonetic ? `<span class="phonetic">${escapeHtml(item.phonetic)}</span>` : ''}
                         <span class="meaning">${escapeHtml(item.meaning)}</span>
                     </div>
                     <div class="action-btns">
