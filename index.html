@@ -7,14 +7,18 @@
     <style>
         :root {
             --primary-medical: #2c7be5;
+            --bg-medical: #f0f7ff;
             --primary-general: #00d97e;
+            --bg-general: #f2fff9;
             --bg-color: #f4f7f6;
             --card-bg: #ffffff;
             --text-color: #333;
             --border-radius: 12px;
+            --highlight-red: #e74c3c;
+            --danger-color: #dc3545;
         }
         body {
-            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            font-family: 'Pretendard', -apple-system, system-ui, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
@@ -23,471 +27,358 @@
             min-height: 100vh;
             padding: 20px;
         }
-        .container {
-            width: 100%;
-            max-width: 800px;
-            background: transparent;
-        }
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 1.5rem;
-            font-size: 1.8rem;
-        }
-        .data-controls {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
+        .container { width: 100%; max-width: 800px; }
+        h1 { text-align: center; color: #333; margin-bottom: 1.5rem; font-size: 1.6rem; }
+        
+        .data-controls { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 10px; }
         .data-btn {
-            background-color: #fff;
-            border: 1px solid #ccc;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            cursor: pointer;
-            color: #555;
+            background-color: #fff; border: 1px solid #ccc; padding: 6px 12px;
+            border-radius: 6px; font-size: 0.8rem; cursor: pointer; color: #555;
             transition: all 0.2s;
         }
-        .data-btn:hover { background-color: #f0f0f0; border-color: #bbb; }
-        .tabs {
-            display: flex;
-            background: #e0e0e0;
-            border-radius: var(--border-radius);
-            padding: 4px;
-            margin-bottom: 15px;
-        }
+        .data-btn:hover { background-color: #f0f0f0; border-color: #999; }
+        .data-btn.danger { color: var(--danger-color); border-color: #f5c6cb; }
+
+        .tabs { display: flex; background: #e0e0e0; border-radius: var(--border-radius); padding: 4px; margin-bottom: 15px; }
         .tab-btn {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            background: transparent;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 1rem;
-            color: #666;
-            transition: all 0.2s;
+            flex: 1; padding: 12px; border: none; background: transparent;
+            border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem; color: #666;
         }
         .tab-btn.active[data-tab="medical"] { background: white; color: var(--primary-medical); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .tab-btn.active[data-tab="general"] { background: white; color: var(--primary-general); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
-        .search-container { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
-        .search-box { position: relative; flex-grow: 2; min-width: 200px; }
-        .search-input {
-            width: 100%;
-            padding: 12px 40px 12px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: var(--border-radius);
-            font-size: 1rem;
-            box-sizing: border-box;
-            transition: border-color 0.2s;
-        }
-        .search-input:focus { outline: none; border-color: #999; }
-        .search-clear-btn {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: #ccc;
-            border: none;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            color: white;
-            font-size: 12px;
-            font-weight: bold;
-            cursor: pointer;
-            display: none;
-            align-items: center;
-            justify-content: center;
-        }
-        .search-filter, .sort-filter {
-            padding: 0 10px;
-            border: 2px solid #e0e0e0;
-            border-radius: var(--border-radius);
-            font-size: 0.9rem;
-            background-color: white;
-            cursor: pointer;
-            color: #555;
-            height: 48px;
-        }
-
         .input-card {
-            background: var(--card-bg);
-            padding: 1.5rem;
-            border-radius: var(--border-radius);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            margin-bottom: 2rem;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            position: relative;
+            background: var(--card-bg); padding: 1.5rem; border-radius: var(--border-radius);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); margin-bottom: 2rem;
         }
-        .input-row { display: flex; gap: 10px; }
+        .mode-selector { display: flex; gap: 5px; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+        .mode-btn {
+            padding: 4px 10px; font-size: 0.75rem; border: 1px solid #ddd; background: #f9f9f9;
+            border-radius: 4px; cursor: pointer; color: #777;
+        }
+        .mode-btn.active { background: #666; color: white; border-color: #666; }
+
+        .input-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
         input, textarea, select {
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 15px;
-            font-family: inherit;
+            padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.95rem; font-family: inherit;
         }
-        input:focus, textarea:focus, select:focus { outline: none; border-color: #888; }
-        textarea { resize: vertical; min-height: 50px; }
-        .btn-group { display: flex; gap: 8px; }
-        button#add-btn {
-            flex: 2;
-            background-color: var(--primary-medical);
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 16px;
-            transition: background 0.2s;
-        }
-        button#cancel-btn {
-            flex: 1;
-            background-color: #6c757d;
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 16px;
-            display: none;
-        }
-        #msg-box { color: #e74c3c; font-size: 0.9rem; font-weight: bold; margin-top: 5px; text-align: center; height: 20px; opacity: 0; transition: opacity 0.3s; }
-
-        .vocab-list { list-style: none; padding: 0; display: grid; gap: 15px; }
-        .vocab-item {
-            background: var(--card-bg);
-            padding: 1.2rem;
-            border-radius: var(--border-radius);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            position: relative;
-            border-left: 5px solid transparent;
-        }
-        .vocab-item.medical { border-left-color: var(--primary-medical); }
-        .vocab-item.general { border-left-color: var(--primary-general); }
-        .item-header { display: flex; justify-content: space-between; align-items: baseline; }
-        .word-group { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-        .word { font-size: 1.4rem; font-weight: 800; color: #222; }
-        .phonetic { font-size: 0.95rem; color: #777; font-weight: 600; }
-        .meaning { font-size: 1.1rem; color: #555; font-weight: 500; }
-
-        .deriv-text {
-            font-size: 0.85rem;
-            color: #888;
-            font-style: italic;
-            margin-top: -4px;
+        textarea { width: 100%; box-sizing: border-box; resize: vertical; min-height: 50px; }
+        
+        .bulk-guide { 
+            font-size: 0.8rem; color: #555; margin-bottom: 8px; padding: 12px; 
+            background: #fff9db; border-radius: 6px; border: 1px solid #fab005; 
+            line-height: 1.6;
         }
 
-        .example-box {
-            background-color: #f8f9fa;
-            padding: 10px;
-            border-radius: 6px;
-            font-size: 0.95rem;
-            color: #444;
-            line-height: 1.5;
-            margin-top: 5px;
-            border-left: 2px solid #ddd;
-            white-space: pre-wrap;
+        .btn-group { display: flex; gap: 8px; margin-top: 15px; }
+        .primary-btn {
+            flex: 2; background-color: var(--primary-medical); color: white; border: none;
+            padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem;
         }
-        .highlight { color: #e74c3c; font-weight: 800; }
-        .supplement-box {
-            background-color: #eef2f7;
-            padding: 10px;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            color: #555;
-            line-height: 1.5;
-            margin-top: 2px;
-            font-style: italic;
-            border-left: 2px solid #6c757d;
-            white-space: pre-wrap;
+        #cancel-btn { flex: 1; background-color: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; display: none; }
+
+        .search-container { 
+            display: flex; gap: 8px; margin-bottom: 20px; background: #fff; 
+            padding: 8px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            align-items: center;
         }
-        .supplement-label { font-weight: bold; font-size: 0.85rem; color: #555; display: block; margin-bottom: 4px; }
-        .action-btns { position: absolute; top: 15px; right: 15px; display: flex; gap: 10px; }
-        .icon-btn { background: transparent; border: none; cursor: pointer; font-size: 1rem; color: #aaa; }
-        .edit-btn:hover { color: var(--primary-medical); }
-        .delete-btn:hover { color: #ff6b6b; }
-        .no-result { text-align: center; color: #888; padding: 20px; }
-        @media (max-width: 600px) {
-            .input-row { flex-direction: column; }
-            .item-header { flex-direction: column; gap: 4px; }
-            .search-container { flex-direction: column; align-items: stretch; }
-        }
+        .search-select { width: 150px; flex-shrink: 0; border: 1px solid #ddd; cursor: pointer; background: #f8f9fa; height: 42px; }
+        .search-wrapper { position: relative; flex: 1; display: flex; align-items: center; }
+        .search-input { width: 100%; border: 1px solid #ddd; padding: 10px 35px 10px 10px; border-radius: 8px; height: 42px; box-sizing: border-box; }
+        .search-clear { position: absolute; right: 10px; cursor: pointer; color: #ccc; font-size: 18px; display: none; user-select: none; }
+        .search-clear:hover { color: #666; }
+
+        .vocab-list { list-style: none; padding: 0; display: grid; gap: 12px; }
+        .vocab-item { padding: 1.2rem; border-radius: var(--border-radius); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); position: relative; border: 1px solid transparent; }
+        .vocab-item.item-medical { background-color: var(--bg-medical); border-color: #d0e4ff; }
+        .vocab-item.item-medical .word { color: var(--primary-medical); }
+        .vocab-item.item-general { background-color: var(--bg-general); border-color: #d6f5e8; }
+        .vocab-item.item-general .word { color: #009e5c; }
+
+        .cat-badge { display: inline-block; font-size: 0.65rem; padding: 2px 8px; border-radius: 10px; margin-bottom: 8px; font-weight: bold; color: white; }
+        .item-medical .cat-badge { background: var(--primary-medical); }
+        .item-general .cat-badge { background: var(--primary-general); }
+
+        .word-group { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+        .word { font-size: 1.3rem; font-weight: 800; }
+        .pronunciation { font-size: 0.95rem; color: #2c7be5; font-style: italic; margin-right: 5px; }
+        .meaning { font-size: 1.05rem; color: #333; font-weight: 600; }
+        
+        .emphasis { color: var(--highlight-red); font-weight: 800; text-decoration: underline; }
+        .deriv-text { font-size: 0.85rem; color: #666; margin-top: 4px; font-style: italic; }
+        
+        .example-box { background: rgba(255, 255, 255, 0.6); padding: 10px; border-radius: 6px; font-size: 0.9rem; margin-top: 8px; border-left: 3px solid #ddd; line-height: 1.5; color: #444; white-space: pre-wrap; word-break: break-all; }
+        .supp-box { background: rgba(0, 0, 0, 0.04); padding: 10px; border-radius: 6px; font-size: 0.85rem; margin-top: 5px; border-left: 3px solid #6c757d; color: #555; white-space: pre-wrap; word-break: break-all; }
+        
+        .action-btns { position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; }
+        .icon-btn { background: transparent; border: none; cursor: pointer; font-size: 0.95rem; color: #999; }
+        .icon-btn:hover { color: #666; }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>📚 논문 리딩용 단어장</h1>
+    <h1>📚 논문 리딩용 단어장 Pro</h1>
+    
     <div class="data-controls">
-        <button id="export-btn" class="data-btn">📤 백업하기 (저장)</button>
+        <button id="delete-all-btn" class="data-btn danger">🗑️ 전체 삭제</button>
+        <button id="export-btn" class="data-btn">📤 백업</button>
         <button id="import-btn" class="data-btn">📥 불러오기</button>
         <input type="file" id="file-input" style="display: none;" accept=".json">
     </div>
+
     <div class="tabs">
         <button class="tab-btn active" data-tab="medical" onclick="switchTab('medical')">🏥 의학 용어</button>
         <button class="tab-btn" data-tab="general" onclick="switchTab('general')">🍏 일반 영단어</button>
     </div>
-    <div class="search-container">
-        <div class="search-box">
-            <input type="text" id="search-input" class="search-input" placeholder="검색어 입력..." autocomplete="off">
-            <button id="search-clear" class="search-clear-btn">✕</button>
+
+    <div class="input-card">
+        <div class="mode-selector">
+            <button class="mode-btn active" id="mode-indiv" onclick="switchMode('individual')">개별 입력</button>
+            <button class="mode-btn" id="mode-bulk" onclick="switchMode('bulk')">일괄 파싱</button>
         </div>
-        <select id="search-filter" class="search-filter">
-            <option value="all">전체 검색</option>
-            <option value="word">단어만 검색</option>
-        </select>
-        <select id="sort-filter" class="sort-filter">
-            <option value="newest">최신순</option>
-            <option value="abc">이름순 (A-Z)</option>
-        </select>
-    </div>
-    <div class="input-card" id="input-area">
-        <div class="input-row">
-            <select id="category-select" style="width: 120px; flex-shrink: 0;">
-                <option value="medical">의학 용어</option>
-                <option value="general">일반 영단어</option>
-            </select>
-            <input type="text" id="word-input" placeholder="단어 (원형)" autocomplete="off">
-            <input type="text" id="phonetic-input" placeholder="발음기호 (예: /ˈtɛmpərəl/)" autocomplete="off">
-            <input type="text" id="meaning-input" placeholder="뜻" autocomplete="off">
+
+        <div id="individual-area">
+            <div class="input-row">
+                <select id="category-select" style="width: 110px;">
+                    <option value="medical">의학 용어</option>
+                    <option value="general">일반 단어</option>
+                </select>
+                <input type="text" id="word-input" placeholder="단어" style="flex:1">
+                <input type="text" id="pronunciation-input" placeholder="발음" style="flex:1">
+            </div>
+            <div class="input-row">
+                <input type="text" id="meaning-input" placeholder="뜻" style="flex:1">
+                <input type="text" id="derivative-input" placeholder="파생어" style="flex:1">
+            </div>
+            <textarea id="example-input" placeholder="예시 (줄바꿈 및 ==강조== 적용 가능)"></textarea>
+            <textarea id="supplement-input" placeholder="보충 설명 (의학 전용)"></textarea>
         </div>
-        <input type="text" id="derivative-input" placeholder="파생어 (예: n. prediction, adj. predictive)" autocomplete="off">
-        <textarea id="example-input" placeholder="사용 예시 (자동 강조됨, 수동 강조는 *별표* 사용)"></textarea>
-        <textarea id="supplement-input" placeholder="보충 설명 / 메모 (의학 용어 전용)"></textarea>
-        <div id="msg-box"></div>
+
+        <div id="bulk-area" style="display:none;">
+            <div id="bulk-guide-text" class="bulk-guide"></div>
+            <textarea id="bulk-input" style="min-height:120px;" placeholder="데이터를 붙여넣으세요..."></textarea>
+        </div>
+
         <div class="btn-group">
-            <button id="add-btn">추가하기</button>
+            <button id="add-btn" class="primary-btn">추가하기</button>
             <button id="cancel-btn">취소</button>
         </div>
     </div>
+
+    <div class="search-container">
+        <select id="search-target" class="search-select">
+            <option value="all">🔍 전체 찾기</option>
+            <option value="word">단어(파생어)</option>
+            <option value="meaning">뜻</option>
+            <option value="supp">보충 설명</option>
+        </select>
+        <div class="search-wrapper">
+            <input type="text" id="search-input" class="search-input" placeholder="검색어를 입력하세요...">
+            <span id="search-clear" class="search-clear" title="검색 초기화">×</span>
+        </div>
+    </div>
+
     <ul id="vocab-list" class="vocab-list"></ul>
 </div>
 
 <script>
     let vocabData = JSON.parse(localStorage.getItem('studyVocabData')) || [];
     let currentTab = 'medical';
+    let currentMode = 'individual';
     let editingId = null;
 
-    const wordInput = document.getElementById('word-input'), 
-          phoneticInput = document.getElementById('phonetic-input'),
+    const wordInput = document.getElementById('word-input'),
+          pronunciationInput = document.getElementById('pronunciation-input'),
           meaningInput = document.getElementById('meaning-input'),
           derivativeInput = document.getElementById('derivative-input'),
-          exampleInput = document.getElementById('example-input'), 
+          exampleInput = document.getElementById('example-input'),
           supplementInput = document.getElementById('supplement-input'),
-          categorySelect = document.getElementById('category-select'), 
+          bulkInput = document.getElementById('bulk-input'),
+          bulkGuideText = document.getElementById('bulk-guide-text'),
+          categorySelect = document.getElementById('category-select'),
           addBtn = document.getElementById('add-btn'),
-          cancelBtn = document.getElementById('cancel-btn'), 
+          cancelBtn = document.getElementById('cancel-btn'),
           vocabList = document.getElementById('vocab-list'),
-          tabBtns = document.querySelectorAll('.tab-btn'), 
           searchInput = document.getElementById('search-input'),
-          searchClearBtn = document.getElementById('search-clear'), 
-          searchFilter = document.getElementById('search-filter'),
-          sortFilter = document.getElementById('sort-filter'), 
+          searchClear = document.getElementById('search-clear'),
+          searchTarget = document.getElementById('search-target'),
           exportBtn = document.getElementById('export-btn'),
-          importBtn = document.getElementById('import-btn'), 
-          fileInput = document.getElementById('file-input'), 
-          msgBox = document.getElementById('msg-box');
+          importBtn = document.getElementById('import-btn'),
+          deleteAllBtn = document.getElementById('delete-all-btn'),
+          fileInput = document.getElementById('file-input');
 
-    renderList(); updateUIForCategory();
+    function checkDuplicate(word, category) {
+        return vocabData.some(existing => 
+            existing.word.trim().toLowerCase() === word.trim().toLowerCase() && 
+            existing.category === category
+        );
+    }
 
-    exportBtn.addEventListener('click', () => {
-        const dataStr = JSON.stringify(vocabData, null, 2), 
-              blob = new Blob([dataStr], { type: "application/json" }),
-              url = URL.createObjectURL(blob), a = document.createElement('a'), now = new Date(),
-              timestamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}${String(now.getSeconds()).padStart(2,'0')}`;
-        a.href = url; a.download = `vocab_backup_${timestamp}.json`; a.click(); URL.revokeObjectURL(url);
+    function saveAndRender() { 
+        localStorage.setItem('studyVocabData', JSON.stringify(vocabData)); 
+        renderList(); 
+    }
+
+    deleteAllBtn.addEventListener('click', () => {
+        if (vocabData.length === 0) { alert("삭제할 단어가 없습니다."); return; }
+        if (confirm("모든 단어를 삭제하시겠습니까?")) {
+            if (confirm("마지막 확인입니다. 모든 데이터가 영구적으로 삭제됩니다.")) {
+                vocabData = []; saveAndRender(); alert("모든 단어가 삭제되었습니다.");
+            }
+        }
     });
 
-    importBtn.addEventListener('click', () => { fileInput.click(); });
+    exportBtn.addEventListener('click', () => {
+        if (vocabData.length === 0) { alert("백업할 데이터가 없습니다."); return; }
+        const dataStr = JSON.stringify(vocabData, null, 2);
+        const blob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const now = new Date();
+        const timestamp = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') + '_' + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0') + String(now.getSeconds()).padStart(2, '0');
+        const a = document.createElement('a'); a.href = url; a.download = `vocab_backup_${timestamp}.json`; a.click(); URL.revokeObjectURL(url);
+    });
 
-    // === 중복 방지 로직이 적용된 불러오기 ===
+    importBtn.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', (e) => {
         const file = e.target.files[0]; if (!file) return;
         const reader = new FileReader();
         reader.onload = (event) => {
             try {
                 const importedData = JSON.parse(event.target.result);
-                if (!Array.isArray(importedData)) throw new Error("잘못된 형식");
-
-                let addedCount = 0; 
-                let skipCount = 0;
-
+                if (!Array.isArray(importedData)) throw new Error("JSON 형식이 올바르지 않습니다.");
+                let addedCount = 0; let skipCount = 0;
                 importedData.forEach(newItem => {
-                    if (!newItem.word || !newItem.meaning) return;
-
-                    // 중복 체크: 같은 카테고리에 같은 단어가 있는지 확인 (대소문자 무시)
-                    const category = (newItem.category || 'general');
-                    const isDuplicate = vocabData.some(existingItem => 
-                        existingItem.category === category && 
-                        (existingItem.word || '').toLowerCase() === (newItem.word || '').toLowerCase()
-                    );
-
-                    if (isDuplicate) {
-                        skipCount++; // 중복이면 추가 안 함
-                    } else {
-                        // 중복 아니면 추가 (ID는 새로 발급)
-                        newItem.id = Date.now() + Math.random(); 
-                        if (!newItem.category) newItem.category = 'general'; // 카테고리 없으면 일반으로
-                        // phonetic이 없을 수도 있으니 기본값만 보장
-                        if (!newItem.phonetic) newItem.phonetic = '';
-                        vocabData.push(newItem);
-                        addedCount++;
-                    }
+                    if (checkDuplicate(newItem.word, newItem.category)) { skipCount++; }
+                    else { if(!newItem.id) newItem.id = Date.now() + Math.random(); vocabData.push(newItem); addedCount++; }
                 });
-
-                if (addedCount > 0) { 
-                    saveData(); 
-                    renderList(); 
-                    alert(`${addedCount}개의 새로운 단어가 추가되었습니다.\n(${skipCount}개는 이미 존재하여 건너뜀)`); 
-                } else {
-                    alert(`추가된 단어가 없습니다.\n(모두 이미 존재하는 단어입니다)`);
-                }
-
-            } catch (err) { alert("오류: " + err.message); }
+                saveAndRender();
+                alert(`${addedCount}개의 단어 추가됨 / ${skipCount}개 중복 건너뜀\n현재 총 단어 수: ${vocabData.length}개`);
+            } catch (err) { alert("불러오기 실패: " + err.message); }
             fileInput.value = '';
         }; reader.readAsText(file);
     });
 
     function switchTab(tabName) {
-        currentTab = tabName; tabBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tabName));
-        categorySelect.value = tabName; updateUIForCategory(); renderList();
+        currentTab = tabName;
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tabName));
+        categorySelect.value = tabName; updateUI(); renderList();
     }
 
-    function updateUIForCategory() {
+    function switchMode(mode) {
+        currentMode = mode;
+        document.getElementById('mode-indiv').classList.toggle('active', mode === 'individual');
+        document.getElementById('mode-bulk').classList.toggle('active', mode === 'bulk');
+        document.getElementById('individual-area').style.display = (mode === 'individual') ? 'block' : 'none';
+        document.getElementById('bulk-area').style.display = (mode === 'bulk') ? 'block' : 'none';
+        if (mode === 'bulk') {
+            const format = currentTab === 'medical' ? "단어 @@ 뜻 @@ 발음 @@ 파생어 @@ 예시 @@ 보충설명" : "단어 @@ 뜻 @@ 발음 @@ 파생어 @@ 예시";
+            bulkGuideText.innerHTML = `현재 섹션: <b>${currentTab === 'medical' ? '🏥 의학 용어' : '🍏 일반 단어'}</b><br>형식: <b>${format}</b><br><small>(항목 간 <b>@@</b> 구분, 강조는 <b>==단어==</b> 기호 사용)</small>`;
+            bulkInput.placeholder = `예시: EEG @@ 뇌전증 @@ /ˌiː.iː.ˈdʒiː/ @@ n. electroencephalogram @@ ==EEG== signals are filtered. @@ 뇌의 전기적 활동 측정 도구`;
+            addBtn.innerText = '일괄 파싱 및 추가';
+        } else { addBtn.innerText = editingId ? '수정 완료' : '추가하기'; }
+    }
+
+    function updateUI() {
         const isMedical = categorySelect.value === 'medical';
         supplementInput.style.display = isMedical ? 'block' : 'none';
-        const color = isMedical ? 'var(--primary-medical)' : 'var(--primary-general)';
-        if (!editingId) addBtn.style.backgroundColor = color;
-        exampleInput.placeholder = isMedical ? '사용 예시 (의학적 문맥)' : '사용 예시 (일상 문장)';
+        addBtn.style.backgroundColor = isMedical ? 'var(--primary-medical)' : 'var(--primary-general)';
+        if (currentMode === 'bulk') switchMode('bulk');
     }
 
-    categorySelect.addEventListener('change', updateUIForCategory);
-    searchInput.addEventListener('input', () => { searchClearBtn.style.display = searchInput.value ? 'flex' : 'none'; renderList(); });
-    searchClearBtn.addEventListener('click', () => { searchInput.value = ''; searchClearBtn.style.display = 'none'; renderList(); searchInput.focus(); });
-    searchFilter.addEventListener('change', renderList);
-    sortFilter.addEventListener('change', renderList);
-
-    function showMessage(msg) { msgBox.innerText = msg; msgBox.style.opacity = 1; setTimeout(() => { msgBox.style.opacity = 0; }, 3000); }
-
     addBtn.addEventListener('click', () => {
-        const word = wordInput.value.trim(), 
-              phonetic = phoneticInput.value.trim(),
-              meaning = meaningInput.value.trim(), 
-              derivative = derivativeInput.value.trim(),
-              example = exampleInput.value.trim(),
-              supplement = categorySelect.value === 'medical' ? supplementInput.value.trim() : '', 
-              category = categorySelect.value;
-
-        if (!word || !meaning) { showMessage('단어와 뜻은 필수입니다!'); return; }
-        if (!editingId && vocabData.some(item => item.category === category && item.word.toLowerCase() === word.toLowerCase())) { showMessage('이미 등록된 단어입니다!'); return; }
-
-        if (editingId) {
-            vocabData = vocabData.map(item => item.id === editingId ? { ...item, word, phonetic, meaning, derivative, example, supplement, category } : item);
-            editingId = null; addBtn.innerText = '추가하기'; cancelBtn.style.display = 'none';
-        } else { 
-            vocabData.unshift({ id: Date.now(), word, phonetic, meaning, derivative, example, supplement, category }); 
+        if (currentMode === 'bulk') {
+            const lines = bulkInput.value.split('\n').filter(l => l.trim());
+            let added = 0; let skipped = 0;
+            lines.forEach(line => {
+                const p = line.split('@@').map(x => x.trim());
+                if (p[0] && p[1]) {
+                    if (checkDuplicate(p[0], currentTab)) { skipped++; }
+                    else {
+                        vocabData.unshift({ 
+                            id: Date.now() + Math.random(), 
+                            word: p[0], meaning: p[1], 
+                            pronunciation: p[2] || '', derivative: p[3] || '', example: p[4] || '', 
+                            supplement: (currentTab === 'medical' ? (p[5] || '') : ''), 
+                            category: currentTab 
+                        });
+                        added++;
+                    }
+                }
+            });
+            bulkInput.value = '';
+            alert(`${added}개의 단어 추가 완료, ${skipped}개의 중복 단어 건너뜀.`);
+        } else {
+            const word = wordInput.value.trim(), 
+                  meaning = meaningInput.value.trim(),
+                  pronunciation = pronunciationInput.value.trim();
+            if (!word || !meaning) return;
+            if (!editingId && checkDuplicate(word, categorySelect.value)) { alert("이미 동일한 카테고리에 등록된 단어입니다."); return; }
+            const item = { word, meaning, pronunciation, derivative: derivativeInput.value.trim(), example: exampleInput.value.trim(), supplement: categorySelect.value === 'medical' ? supplementInput.value.trim() : '', category: categorySelect.value };
+            if (editingId) { vocabData = vocabData.map(i => i.id === editingId ? { ...i, ...item } : i); editingId = null; cancelBtn.style.display = 'none'; }
+            else { vocabData.unshift({ id: Date.now(), ...item }); }
+            clearInputs();
         }
-
-        saveData(); if (currentTab !== category) switchTab(category); else renderList(); clearInputs();
+        saveAndRender();
     });
 
-    window.startEdit = function(id) {
-        const item = vocabData.find(i => i.id === id); if (!item) return;
-        editingId = id; 
-        wordInput.value = item.word; 
-        phoneticInput.value = item.phonetic || '';
-        meaningInput.value = item.meaning; 
-        derivativeInput.value = item.derivative || '';
-        exampleInput.value = item.example || '';
-        supplementInput.value = item.supplement || ''; 
-        categorySelect.value = item.category;
-        updateUIForCategory(); addBtn.innerText = '수정 완료'; addBtn.style.backgroundColor = '#f39c12'; cancelBtn.style.display = 'block';
-        document.getElementById('input-area').scrollIntoView({ behavior: 'smooth' }); wordInput.focus();
-    };
-
-    cancelBtn.addEventListener('click', () => { editingId = null; addBtn.innerText = '추가하기'; cancelBtn.style.display = 'none'; updateUIForCategory(); clearInputs(); });
-    window.deleteWord = function(id) { if(confirm('이 단어를 삭제하시겠습니까?')) { vocabData = vocabData.filter(item => item.id !== id); saveData(); renderList(); } };
-    function clearInputs() { wordInput.value = ''; phoneticInput.value = ''; meaningInput.value = ''; derivativeInput.value = ''; exampleInput.value = ''; supplementInput.value = ''; }
-    function saveData() { localStorage.setItem('studyVocabData', JSON.stringify(vocabData)); }
+    function applyStyle(text) {
+        if (!text) return '';
+        let safe = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        return safe.replace(/\=\=([^\=]+)\=\=/g, '<span class="emphasis">$1</span>');
+    }
 
     function renderList() {
         vocabList.innerHTML = '';
-        const searchTerm = searchInput.value.trim().toLowerCase(), filterType = searchFilter.value, sortType = sortFilter.value;
-
-        let filteredData = vocabData.filter(item => {
-            // 검색어가 없을 때는: 현재 탭(의학/일반)만 표시
-            if (!searchTerm && item.category !== currentTab) return false;
-            if (!searchTerm) return true;
-
-
-            const lowerWord = (item.word || '').toLowerCase();
-            const lowerPhonetic = (item.phonetic || '').toLowerCase();
-            const lowerDerivative = item.derivative ? item.derivative.toLowerCase() : '';
-            const lowerMeaning = (item.meaning || '').toLowerCase();
-            const lowerExample = item.example ? item.example.toLowerCase() : '';
-            const lowerSupplement = item.supplement ? item.supplement.toLowerCase() : '';
-
-            if (filterType === 'word') {
-                return lowerWord.includes(searchTerm) || lowerDerivative.includes(searchTerm) || lowerPhonetic.includes(searchTerm);
-            } else {
-                return (lowerWord.includes(searchTerm) || 
-                        lowerMeaning.includes(searchTerm) || 
-                        lowerDerivative.includes(searchTerm) ||
-                        lowerPhonetic.includes(searchTerm) ||
-                        lowerExample.includes(searchTerm) || 
-                        lowerSupplement.includes(searchTerm));
-            }
+        const term = searchInput.value.toLowerCase();
+        const target = searchTarget.value;
+        const isSearching = term.length > 0;
+        searchClear.style.display = isSearching ? 'block' : 'none';
+        const filtered = vocabData.filter(i => {
+            if (!isSearching && i.category !== currentTab) return false;
+            if (!isSearching) return true;
+            const inWord = (i.word + (i.derivative || "")).toLowerCase().includes(term);
+            const inMeaning = i.meaning.toLowerCase().includes(term);
+            const inSupp = (i.supplement || "").toLowerCase().includes(term);
+            if (target === 'word') return inWord; if (target === 'meaning') return inMeaning; if (target === 'supp') return inSupp;
+            return inWord || inMeaning || inSupp || (i.example || "").toLowerCase().includes(term);
         });
-
-        if (sortType === 'abc') filteredData.sort((a, b) => (a.word || '').toLowerCase().localeCompare((b.word || '').toLowerCase()));
-        else filteredData.sort((a, b) => b.id - a.id);
-
-        if (filteredData.length === 0) { vocabList.innerHTML = '<li class="no-result">검색 결과가 없습니다.</li>'; return; }
-
-        filteredData.forEach(item => {
-            const li = document.createElement('li'); li.className = `vocab-item ${item.category}`;
-            const parsedExample = applyHighlights(item.example, item.word);
-
+        filtered.forEach(item => {
+            const li = document.createElement('li'); li.className = `vocab-item item-${item.category}`;
             li.innerHTML = `
-                <div class="item-header">
-                    <div class="word-group">
-                        <span class="word">${escapeHtml(item.word)}</span>
-                        ${item.phonetic ? `<span class="phonetic">${escapeHtml(item.phonetic)}</span>` : ''}
-                        <span class="meaning">${escapeHtml(item.meaning)}</span>
-                    </div>
-                    <div class="action-btns">
-                        <button class="icon-btn edit-btn" onclick="startEdit(${item.id})">✏️</button>
-                        <button class="icon-btn delete-btn" onclick="deleteWord(${item.id})">🗑️</button>
-                    </div>
+                ${isSearching ? `<span class="cat-badge">${item.category === 'medical' ? '의학' : '일반'}</span>` : ''}
+                <div class="word-group">
+                    <span class="word">${item.word}</span>
+                    ${item.pronunciation ? `<span class="pronunciation">[${item.pronunciation}]</span>` : ''}
+                    <span class="meaning">${item.meaning}</span>
                 </div>
-                ${item.derivative ? `<div class="deriv-text">파생: ${escapeHtml(item.derivative)}</div>` : ''}
-                ${item.example ? `<div class="example-box">${parsedExample}</div>` : ''}
-                ${(item.category === 'medical' && item.supplement) ? `<div class="supplement-box"><span class="supplement-label">💡 참고:</span>${escapeHtml(item.supplement)}</div>` : ''}
+                <div class="action-btns">
+                    <button class="icon-btn" title="수정" onclick="startEdit(${item.id})">✏️</button>
+                    <button class="icon-btn" title="삭제" onclick="deleteWord(${item.id})">🗑️</button>
+                </div>
+                ${item.derivative ? `<div class="deriv-text">파생: ${item.derivative}</div>` : ''}
+                ${item.example ? `<div class="example-box">${applyStyle(item.example)}</div>` : ''}
+                ${item.supplement ? `<div class="supp-box">💡 ${applyStyle(item.supplement)}</div>` : ''}
             `;
             vocabList.appendChild(li);
         });
     }
 
-    function escapeHtml(text) { if (!text) return ''; return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
-    function applyHighlights(text, word) {
-        if (!text) return ''; let safeText = escapeHtml(text);
-        if (word && word.trim() !== '') {
-            const safeWord = escapeHtml(word.trim());
-            try { const regex = new RegExp(`\\b(${safeWord})\\b`, 'gi'); safeText = safeText.replace(regex, '<span class="highlight">$1</span>'); } catch (e) {}
-        }
-        safeText = safeText.replace(/\*([^*]+)\*/g, '<span class="highlight">$1</span>'); return safeText;
-    }
+    searchClear.addEventListener('click', () => { searchInput.value = ''; renderList(); searchInput.focus(); });
+    function clearInputs() { [wordInput, pronunciationInput, meaningInput, derivativeInput, exampleInput, supplementInput].forEach(el => el.value = ''); }
+    window.startEdit = function(id) {
+        const item = vocabData.find(i => i.id === id); editingId = id; switchMode('individual');
+        wordInput.value = item.word; 
+        pronunciationInput.value = item.pronunciation || '';
+        meaningInput.value = item.meaning; 
+        derivativeInput.value = item.derivative || ''; 
+        exampleInput.value = item.example || ''; 
+        supplementInput.value = item.supplement || ''; 
+        categorySelect.value = item.category; 
+        updateUI();
+        cancelBtn.style.display = 'block'; window.scrollTo(0, 0);
+    };
+    window.deleteWord = function(id) { if(confirm('삭제하시겠습니까?')) { vocabData = vocabData.filter(i => i.id !== id); saveAndRender(); } };
+    searchInput.addEventListener('input', renderList); searchTarget.addEventListener('change', renderList); categorySelect.addEventListener('change', updateUI); updateUI(); renderList();
 </script>
 </body>
 </html>
