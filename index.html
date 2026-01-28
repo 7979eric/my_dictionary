@@ -268,7 +268,8 @@
           starModalClose = document.getElementById('star-modal-close'),
           starListEl = document.getElementById('star-list'),
           starClearBtn = document.getElementById('star-clear-btn'),
-          starModalSearch = document.getElementById('star-modal-search');
+          starModalSearch = document.getElementById('star-modal-search'),
+          inputCard = document.querySelector('.input-card');
 
     function normalize(s) { return (s || '').trim().toLowerCase(); }
 
@@ -395,6 +396,9 @@
         // 관심 단어 탭에서는 일괄 입력(가이드)이 혼동될 수 있어 자동으로 개별 입력으로 전환
         if (tabName === 'star' && currentMode === 'bulk') switchMode('individual');
 
+        // ⭐ 관심 단어 탭에서는 '단어 추가' UI 숨김
+        if (inputCard) inputCard.style.display = (tabName === 'star') ? 'none' : 'block';
+
         updateUI();
         renderList();
     }
@@ -431,7 +435,9 @@
         supplementInput.style.display = isMedical ? 'block' : 'none';
         addBtn.style.backgroundColor = isMedical ? 'var(--primary-medical)' : 'var(--primary-general)';
 
-        // 관심 탭에서는 리스트만 관심 단어로 보여주되, 입력 UI는 기존대로 유지
+        // ⭐ 관심 단어 탭에서는 '단어 추가' UI 숨김(안전장치)
+        if (inputCard) inputCard.style.display = (currentTab === 'star') ? 'none' : 'block';
+
         if (currentMode === 'bulk') switchMode('bulk');
     }
 
