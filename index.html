@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>논문 리딩용 단어장</title>
+    <title>논문 리딩용 단어장 Pro</title>
     <style>
         :root {
             --primary-medical: #2c7be5;
@@ -113,6 +113,37 @@
         .action-btns { position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; }
         .icon-btn { background: transparent; border: none; cursor: pointer; font-size: 0.95rem; color: #999; }
         .icon-btn:hover { color: #666; }
+        /* 관심 단어(⭐) */
+        .icon-btn.star-btn { font-size: 1.05rem; }
+        .icon-btn.star-btn.on { color: #f5a623; }
+
+        .tab-btn.active[data-tab="star"] { background: white; color: #f5a623; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+        /* 관심 단어 편집 모달 */
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 999; }
+        .modal.open { display: flex; }
+        .modal-content {
+            width: 100%; max-width: 720px; background: #fff; border-radius: 14px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.18); overflow: hidden;
+        }
+        .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #eee; }
+        .modal-header h2 { margin: 0; font-size: 1.05rem; }
+        .modal-close { border: none; background: transparent; cursor: pointer; font-size: 1.4rem; color: #999; line-height: 1; }
+        .modal-close:hover { color: #666; }
+        .modal-actions { display: flex; gap: 8px; padding: 12px 16px; border-bottom: 1px solid #f1f1f1; align-items: center; }
+        .modal-search { flex: 1; height: 40px; }
+        .star-list { list-style: none; padding: 12px 16px; margin: 0; display: grid; gap: 8px; max-height: 60vh; overflow: auto; }
+        .star-row { display: flex; gap: 10px; align-items: center; border: 1px solid #eee; border-radius: 10px; padding: 10px 12px; }
+        .star-row .star-meta { flex: 1; min-width: 0; }
+        .star-row .star-word { font-weight: 800; }
+        .star-row .star-meaning { color: #555; margin-left: 6px; font-weight: 600; }
+        .star-row .star-sub { font-size: 0.8rem; color: #777; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .star-row .star-ctrl { display: flex; gap: 6px; }
+        .mini-btn { border: 1px solid #ddd; background: #fff; border-radius: 8px; padding: 6px 8px; cursor: pointer; font-size: 0.85rem; color: #555; }
+        .mini-btn:hover { background: #f6f6f6; }
+        .mini-btn.danger { border-color: #f5c6cb; color: var(--danger-color); }
+        .modal-footer { padding: 10px 16px 14px 16px; border-top: 1px solid #f1f1f1; color: #777; font-size: 0.8rem; }
+
     </style>
 </head>
 <body>
@@ -123,12 +154,14 @@
         <button id="delete-all-btn" class="data-btn danger">🗑️ 전체 삭제</button>
         <button id="export-btn" class="data-btn">📤 백업</button>
         <button id="import-btn" class="data-btn">📥 불러오기</button>
+        <button id="star-manage-btn" class="data-btn">⭐ 관심 단어</button>
         <input type="file" id="file-input" style="display: none;" accept=".json">
     </div>
 
     <div class="tabs">
         <button class="tab-btn active" data-tab="medical" onclick="switchTab('medical')">🏥 의학 용어</button>
         <button class="tab-btn" data-tab="general" onclick="switchTab('general')">🍏 일반 영단어</button>
+        <button class="tab-btn" data-tab="star" onclick="switchTab('star')">⭐ 관심 단어</button>
     </div>
 
     <div class="input-card">
@@ -179,10 +212,34 @@
     </div>
 
     <ul id="vocab-list" class="vocab-list"></ul>
+
+    <!-- ⭐ 관심 단어 편집 모달 -->
+    <div id="star-modal" class="modal" aria-hidden="true">
+        <div class="modal-content" role="dialog" aria-modal="true" aria-label="관심 단어 편집">
+            <div class="modal-header">
+                <h2>⭐ 관심 단어 편집</h2>
+                <button id="star-modal-close" class="modal-close" title="닫기">×</button>
+            </div>
+            <div class="modal-actions">
+                <input type="text" id="star-modal-search" class="modal-search" placeholder="관심 단어 검색...">
+                <button id="star-clear-btn" class="data-btn danger" title="관심 단어 전체 해제">전체 해제</button>
+            </div>
+            <ul id="star-list" class="star-list"></ul>
+            <div class="modal-footer">순서 변경: ▲▼ 버튼 / 삭제: ✖ 버튼</div>
+        </div>
+    </div>
+
 </div>
 
 <script>
     let vocabData = JSON.parse(localStorage.getItem('studyVocabData')) || [];
+    let starOrder = JSON.parse(localStorage.getItem('studyVocabStarOrder')) || [];
+
+    // 마이그레이션: 백업 JSON에 starred가 포함되어 있고, 별도 순서 데이터가 없을 때
+    if (starOrder.length === 0) {
+        starOrder = vocabData.filter(i => i && i.starred).map(i => i.id);
+    }
+
     let currentTab = 'medical';
     let currentMode = 'individual';
     let editingId = null;
@@ -205,31 +262,65 @@
           exportBtn = document.getElementById('export-btn'),
           importBtn = document.getElementById('import-btn'),
           deleteAllBtn = document.getElementById('delete-all-btn'),
-          fileInput = document.getElementById('file-input');
+          fileInput = document.getElementById('file-input'),
+          starManageBtn = document.getElementById('star-manage-btn'),
+          starModal = document.getElementById('star-modal'),
+          starModalClose = document.getElementById('star-modal-close'),
+          starListEl = document.getElementById('star-list'),
+          starClearBtn = document.getElementById('star-clear-btn'),
+          starModalSearch = document.getElementById('star-modal-search');
 
-    function checkDuplicate(word, category) {
-        return vocabData.some(existing => 
-            existing.word.trim().toLowerCase() === word.trim().toLowerCase() && 
+    function normalize(s) { return (s || '').trim().toLowerCase(); }
+
+    function findDuplicate(word, category) {
+        return vocabData.find(existing =>
+            normalize(existing.word) === normalize(word) &&
             existing.category === category
         );
     }
+    function checkDuplicate(word, category) { return !!findDuplicate(word, category); }
 
-    function saveAndRender() { 
-        localStorage.setItem('studyVocabData', JSON.stringify(vocabData)); 
-        renderList(); 
+    function isStarred(id) { return starOrder.includes(id); }
+    function addStar(id, toTop = true) {
+        if (isStarred(id)) return;
+        toTop ? starOrder.unshift(id) : starOrder.push(id);
+    }
+    function removeStar(id) { starOrder = starOrder.filter(x => x !== id); }
+
+    function pruneStarOrder() {
+        const ids = new Set(vocabData.map(i => i.id));
+        starOrder = starOrder.filter(id => ids.has(id));
+    }
+    function syncStarFlags() {
+        const set = new Set(starOrder);
+        vocabData = vocabData.map(i => ({ ...i, starred: set.has(i.id) }));
     }
 
+    function saveAndRender() {
+        pruneStarOrder();
+        syncStarFlags();
+        localStorage.setItem('studyVocabData', JSON.stringify(vocabData));
+        localStorage.setItem('studyVocabStarOrder', JSON.stringify(starOrder));
+        renderList();
+        renderStarManager(); // 모달이 열려 있지 않아도 안전
+    }
+
+    // ===== 데이터 관리 =====
     deleteAllBtn.addEventListener('click', () => {
         if (vocabData.length === 0) { alert("삭제할 단어가 없습니다."); return; }
         if (confirm("모든 단어를 삭제하시겠습니까?")) {
             if (confirm("마지막 확인입니다. 모든 데이터가 영구적으로 삭제됩니다.")) {
-                vocabData = []; saveAndRender(); alert("모든 단어가 삭제되었습니다.");
+                vocabData = [];
+                starOrder = [];
+                saveAndRender();
+                alert("모든 단어가 삭제되었습니다.");
             }
         }
     });
 
     exportBtn.addEventListener('click', () => {
         if (vocabData.length === 0) { alert("백업할 데이터가 없습니다."); return; }
+        pruneStarOrder(); syncStarFlags();
         const dataStr = JSON.stringify(vocabData, null, 2);
         const blob = new Blob([dataStr], { type: "application/json" });
         const url = URL.createObjectURL(blob);
@@ -246,23 +337,68 @@
             try {
                 const importedData = JSON.parse(event.target.result);
                 if (!Array.isArray(importedData)) throw new Error("JSON 형식이 올바르지 않습니다.");
-                let addedCount = 0; let skipCount = 0;
+
+                let addedCount = 0; let skipCount = 0; let starredApplied = 0;
+
                 importedData.forEach(newItem => {
-                    if (checkDuplicate(newItem.word, newItem.category)) { skipCount++; }
-                    else { if(!newItem.id) newItem.id = Date.now() + Math.random(); vocabData.push(newItem); addedCount++; }
+                    if (!newItem || !newItem.word || !newItem.meaning || !newItem.category) return;
+
+                    const dup = findDuplicate(newItem.word, newItem.category);
+
+                    // 중복이면 기존 아이템에 관심(⭐)만 반영할 수 있게 처리
+                    if (dup) {
+                        if (newItem.starred) { addStar(dup.id, false); starredApplied++; }
+                        skipCount++;
+                        return;
+                    }
+
+                    const id = newItem.id || (Date.now() + Math.random());
+                    const item = {
+                        id,
+                        word: newItem.word,
+                        meaning: newItem.meaning,
+                        pronunciation: newItem.pronunciation || '',
+                        derivative: newItem.derivative || '',
+                        example: newItem.example || '',
+                        supplement: (newItem.category === 'medical' ? (newItem.supplement || '') : ''),
+                        category: newItem.category
+                    };
+
+                    vocabData.push(item);
+                    if (newItem.starred) { addStar(id, false); starredApplied++; }
+                    addedCount++;
                 });
+
                 saveAndRender();
-                alert(`${addedCount}개의 단어 추가됨 / ${skipCount}개 중복 건너뜀\n현재 총 단어 수: ${vocabData.length}개`);
-            } catch (err) { alert("불러오기 실패: " + err.message); }
+                alert(`${addedCount}개의 단어 추가됨 / ${skipCount}개 중복 건너뜀
+⭐ 관심 단어 반영: ${starredApplied}개
+현재 총 단어 수: ${vocabData.length}개`);
+            } catch (err) {
+                alert("불러오기 실패: " + err.message);
+            }
             fileInput.value = '';
-        }; reader.readAsText(file);
+        };
+        reader.readAsText(file);
     });
 
+    // ===== 탭/모드 =====
     function switchTab(tabName) {
         currentTab = tabName;
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tabName));
-        categorySelect.value = tabName; updateUI(); renderList();
+
+        document.querySelectorAll('.tab-btn').forEach(btn =>
+            btn.classList.toggle('active', btn.dataset.tab === tabName)
+        );
+
+        // 관심 단어 탭은 입력 카테고리를 바꾸지 않음
+        if (tabName !== 'star') categorySelect.value = tabName;
+
+        // 관심 단어 탭에서는 일괄 입력(가이드)이 혼동될 수 있어 자동으로 개별 입력으로 전환
+        if (tabName === 'star' && currentMode === 'bulk') switchMode('individual');
+
+        updateUI();
+        renderList();
     }
+    window.switchTab = switchTab;
 
     function switchMode(mode) {
         currentMode = mode;
@@ -270,57 +406,109 @@
         document.getElementById('mode-bulk').classList.toggle('active', mode === 'bulk');
         document.getElementById('individual-area').style.display = (mode === 'individual') ? 'block' : 'none';
         document.getElementById('bulk-area').style.display = (mode === 'bulk') ? 'block' : 'none';
+
         if (mode === 'bulk') {
-            const format = currentTab === 'medical' ? "단어 @@ 뜻 @@ 발음 @@ 파생어 @@ 예시 @@ 보충설명" : "단어 @@ 뜻 @@ 발음 @@ 파생어 @@ 예시";
-            bulkGuideText.innerHTML = `현재 섹션: <b>${currentTab === 'medical' ? '🏥 의학 용어' : '🍏 일반 단어'}</b><br>형식: <b>${format}</b><br><small>(항목 간 <b>@@</b> 구분, 강조는 <b>==단어==</b> 기호 사용)</small>`;
+            const bulkTab = (currentTab === 'star') ? categorySelect.value : currentTab;
+            const format = bulkTab === 'medical'
+                ? "단어 @@ 뜻 @@ 발음 @@ 파생어 @@ 예시 @@ 보충설명"
+                : "단어 @@ 뜻 @@ 발음 @@ 파생어 @@ 예시";
+
+            bulkGuideText.innerHTML =
+                `현재 섹션: <b>${bulkTab === 'medical' ? '🏥 의학 용어' : '🍏 일반 단어'}</b><br>` +
+                `형식: <b>${format}</b><br>` +
+                `<small>(항목 간 <b>@@</b> 구분, 강조는 <b>==단어==</b> 기호 사용)</small>`;
+
             bulkInput.placeholder = `예시: EEG @@ 뇌전증 @@ /ˌiː.iː.ˈdʒiː/ @@ n. electroencephalogram @@ ==EEG== signals are filtered. @@ 뇌의 전기적 활동 측정 도구`;
             addBtn.innerText = '일괄 파싱 및 추가';
-        } else { addBtn.innerText = editingId ? '수정 완료' : '추가하기'; }
+        } else {
+            addBtn.innerText = editingId ? '수정 완료' : '추가하기';
+        }
     }
+    window.switchMode = switchMode;
 
     function updateUI() {
         const isMedical = categorySelect.value === 'medical';
         supplementInput.style.display = isMedical ? 'block' : 'none';
         addBtn.style.backgroundColor = isMedical ? 'var(--primary-medical)' : 'var(--primary-general)';
+
+        // 관심 탭에서는 리스트만 관심 단어로 보여주되, 입력 UI는 기존대로 유지
         if (currentMode === 'bulk') switchMode('bulk');
     }
 
+    // ===== 추가/수정 =====
     addBtn.addEventListener('click', () => {
         if (currentMode === 'bulk') {
-            const lines = bulkInput.value.split('\n').filter(l => l.trim());
+            const lines = bulkInput.value.split(/\r?\n/).filter(l => l.trim());
             let added = 0; let skipped = 0;
+
+            const bulkTab = (currentTab === 'star') ? categorySelect.value : currentTab;
+
             lines.forEach(line => {
                 const p = line.split('@@').map(x => x.trim());
                 if (p[0] && p[1]) {
-                    if (checkDuplicate(p[0], currentTab)) { skipped++; }
+                    if (checkDuplicate(p[0], bulkTab)) { skipped++; }
                     else {
-                        vocabData.unshift({ 
-                            id: Date.now() + Math.random(), 
-                            word: p[0], meaning: p[1], 
-                            pronunciation: p[2] || '', derivative: p[3] || '', example: p[4] || '', 
-                            supplement: (currentTab === 'medical' ? (p[5] || '') : ''), 
-                            category: currentTab 
+                        vocabData.unshift({
+                            id: Date.now() + Math.random(),
+                            word: p[0],
+                            meaning: p[1],
+                            pronunciation: p[2] || '',
+                            derivative: p[3] || '',
+                            example: p[4] || '',
+                            supplement: (bulkTab === 'medical' ? (p[5] || '') : ''),
+                            category: bulkTab
                         });
                         added++;
                     }
                 }
             });
+
             bulkInput.value = '';
             alert(`${added}개의 단어 추가 완료, ${skipped}개의 중복 단어 건너뜀.`);
         } else {
-            const word = wordInput.value.trim(), 
+            const word = wordInput.value.trim(),
                   meaning = meaningInput.value.trim(),
                   pronunciation = pronunciationInput.value.trim();
+
             if (!word || !meaning) return;
-            if (!editingId && checkDuplicate(word, categorySelect.value)) { alert("이미 동일한 카테고리에 등록된 단어입니다."); return; }
-            const item = { word, meaning, pronunciation, derivative: derivativeInput.value.trim(), example: exampleInput.value.trim(), supplement: categorySelect.value === 'medical' ? supplementInput.value.trim() : '', category: categorySelect.value };
-            if (editingId) { vocabData = vocabData.map(i => i.id === editingId ? { ...i, ...item } : i); editingId = null; cancelBtn.style.display = 'none'; }
-            else { vocabData.unshift({ id: Date.now(), ...item }); }
+
+            if (!editingId && checkDuplicate(word, categorySelect.value)) {
+                alert("이미 동일한 카테고리에 등록된 단어입니다.");
+                return;
+            }
+
+            const item = {
+                word,
+                meaning,
+                pronunciation,
+                derivative: derivativeInput.value.trim(),
+                example: exampleInput.value.trim(),
+                supplement: categorySelect.value === 'medical' ? supplementInput.value.trim() : '',
+                category: categorySelect.value
+            };
+
+            if (editingId) {
+                vocabData = vocabData.map(i => i.id === editingId ? { ...i, ...item } : i);
+                editingId = null;
+                cancelBtn.style.display = 'none';
+            } else {
+                vocabData.unshift({ id: Date.now(), ...item });
+            }
+
             clearInputs();
         }
+
         saveAndRender();
     });
 
+    cancelBtn.addEventListener('click', () => {
+        editingId = null;
+        cancelBtn.style.display = 'none';
+        clearInputs();
+        addBtn.innerText = '추가하기';
+    });
+
+    // ===== 표시 =====
     function applyStyle(text) {
         if (!text) return '';
         let safe = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -329,29 +517,48 @@
 
     function renderList() {
         vocabList.innerHTML = '';
+
         const term = searchInput.value.toLowerCase();
         const target = searchTarget.value;
         const isSearching = term.length > 0;
+        const isStarTab = currentTab === 'star';
+
         searchClear.style.display = isSearching ? 'block' : 'none';
+
         const filtered = vocabData.filter(i => {
-            if (!isSearching && i.category !== currentTab) return false;
+            if (isStarTab && !isStarred(i.id)) return false;
+
+            // 검색 중이 아니면: 탭에 맞춰 필터 (관심 탭 제외)
+            if (!isSearching && !isStarTab && i.category !== currentTab) return false;
             if (!isSearching) return true;
+
             const inWord = (i.word + (i.derivative || "")).toLowerCase().includes(term);
-            const inMeaning = i.meaning.toLowerCase().includes(term);
+            const inMeaning = (i.meaning || "").toLowerCase().includes(term);
             const inSupp = (i.supplement || "").toLowerCase().includes(term);
-            if (target === 'word') return inWord; if (target === 'meaning') return inMeaning; if (target === 'supp') return inSupp;
-            return inWord || inMeaning || inSupp || (i.example || "").toLowerCase().includes(term);
+            const inExample = (i.example || "").toLowerCase().includes(term);
+
+            if (target === 'word') return inWord;
+            if (target === 'meaning') return inMeaning;
+            if (target === 'supp') return inSupp;
+            return inWord || inMeaning || inSupp || inExample;
         });
+
         filtered.forEach(item => {
-            const li = document.createElement('li'); li.className = `vocab-item item-${item.category}`;
+            const li = document.createElement('li');
+            li.className = `vocab-item item-${item.category}`;
+
+            const showBadge = isSearching || isStarTab;
+            const starOn = isStarred(item.id);
+
             li.innerHTML = `
-                ${isSearching ? `<span class="cat-badge">${item.category === 'medical' ? '의학' : '일반'}</span>` : ''}
+                ${showBadge ? `<span class="cat-badge">${item.category === 'medical' ? '의학' : '일반'}</span>` : ''}
                 <div class="word-group">
                     <span class="word">${item.word}</span>
                     ${item.pronunciation ? `<span class="pronunciation">[${item.pronunciation}]</span>` : ''}
                     <span class="meaning">${item.meaning}</span>
                 </div>
                 <div class="action-btns">
+                    <button class="icon-btn star-btn ${starOn ? 'on' : ''}" title="관심 단어" onclick="toggleStar(${item.id})">${starOn ? '⭐' : '☆'}</button>
                     <button class="icon-btn" title="수정" onclick="startEdit(${item.id})">✏️</button>
                     <button class="icon-btn" title="삭제" onclick="deleteWord(${item.id})">🗑️</button>
                 </div>
@@ -363,22 +570,166 @@
         });
     }
 
-    searchClear.addEventListener('click', () => { searchInput.value = ''; renderList(); searchInput.focus(); });
+    // ===== 검색 =====
+    searchClear.addEventListener('click', () => {
+        searchInput.value = '';
+        renderList();
+        searchInput.focus();
+    });
+
+    searchInput.addEventListener('input', renderList);
+    searchTarget.addEventListener('change', renderList);
+
+    // ===== 편집/삭제 =====
     function clearInputs() { [wordInput, pronunciationInput, meaningInput, derivativeInput, exampleInput, supplementInput].forEach(el => el.value = ''); }
+
     window.startEdit = function(id) {
-        const item = vocabData.find(i => i.id === id); editingId = id; switchMode('individual');
-        wordInput.value = item.word; 
+        const item = vocabData.find(i => i.id === id);
+        if (!item) return;
+
+        editingId = id;
+        switchMode('individual');
+
+        wordInput.value = item.word;
         pronunciationInput.value = item.pronunciation || '';
-        meaningInput.value = item.meaning; 
-        derivativeInput.value = item.derivative || ''; 
-        exampleInput.value = item.example || ''; 
-        supplementInput.value = item.supplement || ''; 
-        categorySelect.value = item.category; 
+        meaningInput.value = item.meaning;
+        derivativeInput.value = item.derivative || '';
+        exampleInput.value = item.example || '';
+        supplementInput.value = item.supplement || '';
+        categorySelect.value = item.category;
+
         updateUI();
-        cancelBtn.style.display = 'block'; window.scrollTo(0, 0);
+        cancelBtn.style.display = 'block';
+        addBtn.innerText = '수정 완료';
+
+        window.scrollTo(0, 0);
+        closeStarModal();
     };
-    window.deleteWord = function(id) { if(confirm('삭제하시겠습니까?')) { vocabData = vocabData.filter(i => i.id !== id); saveAndRender(); } };
-    searchInput.addEventListener('input', renderList); searchTarget.addEventListener('change', renderList); categorySelect.addEventListener('change', updateUI); updateUI(); renderList();
+
+    window.deleteWord = function(id) {
+        if (!confirm('삭제하시겠습니까?')) return;
+        vocabData = vocabData.filter(i => i.id !== id);
+        removeStar(id);
+        saveAndRender();
+    };
+
+    // ===== 관심 단어(⭐) =====
+    window.toggleStar = function(id) {
+        if (isStarred(id)) removeStar(id);
+        else addStar(id, true);
+        saveAndRender();
+    };
+
+    function openStarModal() {
+        starModal.classList.add('open');
+        starModal.setAttribute('aria-hidden', 'false');
+        renderStarManager();
+        setTimeout(() => starModalSearch && starModalSearch.focus(), 0);
+    }
+
+    function closeStarModal() {
+        starModal.classList.remove('open');
+        starModal.setAttribute('aria-hidden', 'true');
+        if (starModalSearch) starModalSearch.value = '';
+    }
+
+    function moveStar(id, dir) {
+        const idx = starOrder.indexOf(id);
+        if (idx < 0) return;
+
+        const newIdx = idx + dir;
+        if (newIdx < 0 || newIdx >= starOrder.length) return;
+
+        const next = [...starOrder];
+        const [picked] = next.splice(idx, 1);
+        next.splice(newIdx, 0, picked);
+        starOrder = next;
+        saveAndRender();
+    }
+
+    function renderStarManager() {
+        if (!starListEl) return;
+
+        const term = normalize(starModalSearch ? starModalSearch.value : '');
+        const items = starOrder
+            .map(id => vocabData.find(v => v.id === id))
+            .filter(Boolean)
+            .filter(v => {
+                if (!term) return true;
+                const hay = normalize(v.word + ' ' + (v.meaning || '') + ' ' + (v.derivative || ''));
+                return hay.includes(term);
+            });
+
+        starListEl.innerHTML = '';
+
+        if (items.length === 0) {
+            const empty = document.createElement('li');
+            empty.style.padding = '14px 2px';
+            empty.style.color = '#777';
+            empty.textContent = '관심 단어가 없습니다. 단어 카드의 ☆ 버튼으로 추가할 수 있습니다.';
+            starListEl.appendChild(empty);
+            return;
+        }
+
+        items.forEach((v, listIndex) => {
+            const li = document.createElement('li');
+            li.className = 'star-row';
+
+            li.innerHTML = `
+                <span class="cat-badge" style="margin:0; ${v.category === 'medical' ? 'background: var(--primary-medical);' : 'background: var(--primary-general);'}">${v.category === 'medical' ? '의학' : '일반'}</span>
+                <div class="star-meta">
+                    <div><span class="star-word">${v.word}</span><span class="star-meaning">${v.meaning || ''}</span></div>
+                    <div class="star-sub">${v.pronunciation ? `[${v.pronunciation}] ` : ''}${v.derivative ? `파생: ${v.derivative}` : ''}</div>
+                </div>
+                <div class="star-ctrl">
+                    <button class="mini-btn" title="위로" ${listIndex === 0 ? 'disabled' : ''}>▲</button>
+                    <button class="mini-btn" title="아래로" ${listIndex === items.length - 1 ? 'disabled' : ''}>▼</button>
+                    <button class="mini-btn" title="수정">✏️</button>
+                    <button class="mini-btn danger" title="관심 해제">✖</button>
+                </div>
+            `;
+
+            const buttons = li.querySelectorAll('button');
+            const upBtn = buttons[0], downBtn = buttons[1], editBtn = buttons[2], delBtn = buttons[3];
+
+            upBtn.addEventListener('click', () => moveStar(v.id, -1));
+            downBtn.addEventListener('click', () => moveStar(v.id, 1));
+            editBtn.addEventListener('click', () => window.startEdit(v.id));
+            delBtn.addEventListener('click', () => { removeStar(v.id); saveAndRender(); });
+
+            starListEl.appendChild(li);
+        });
+    }
+
+    // 모달 이벤트
+    if (starManageBtn) starManageBtn.addEventListener('click', openStarModal);
+    if (starModalClose) starModalClose.addEventListener('click', closeStarModal);
+
+    if (starModal) {
+        starModal.addEventListener('click', (e) => {
+            if (e.target === starModal) closeStarModal();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeStarModal();
+        });
+    }
+
+    if (starClearBtn) {
+        starClearBtn.addEventListener('click', () => {
+            if (starOrder.length === 0) { alert('관심 단어가 없습니다.'); return; }
+            if (confirm('관심 단어를 모두 해제하시겠습니까?')) {
+                starOrder = [];
+                saveAndRender();
+            }
+        });
+    }
+
+    if (starModalSearch) starModalSearch.addEventListener('input', renderStarManager);
+
+    // ===== 초기화 =====
+    categorySelect.addEventListener('change', updateUI);
+    updateUI();
+    saveAndRender(); // starred 플래그/순서 정리 + 첫 렌더
 </script>
 </body>
 </html>
